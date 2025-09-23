@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Portfolio-Generator.api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d648478442b21b96e8d60547e72c8143303b3d07")]
 [assembly: System.Reflection.AssemblyProductAttribute("Portfolio-Generator.api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Portfolio-Generator.api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
