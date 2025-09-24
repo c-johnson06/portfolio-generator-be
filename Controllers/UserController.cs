@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Octokit;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net;
+using System.Reflection.Metadata.Ecma335;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -13,20 +16,20 @@ public class UserController : ControllerBase
 
     public async Task<IActionResult> GetCurrentUser()
     {
-        var accessToken = await HttpContext.GetTokenAsync("access_token");
-
-        if (string.IsNullOrEmpty(accessToken))
-        {
-            return Unauthorized("Could not read access token");
-        }
-
-        var github = new GitHubClient(new ProductHeaderValue("Portfolio-Generator"))
-        {
-            Credentials = new Credentials(accessToken)
-        };
-
         try
         {
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                return Unauthorized("Could not read access token");
+            }
+
+            var github = new GitHubClient(new ProductHeaderValue("Portfolio-Generator"))
+            {
+                Credentials = new Credentials(accessToken)
+            };
+
             var user = await github.User.Current();
             var userData = new
             {
@@ -40,10 +43,25 @@ public class UserController : ControllerBase
             };
 
             return Ok(userData);
+
+        }
+        catch (AuthorizationException)
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Unauthorized("Invalid access token");
         }
         catch (ApiException ex)
         {
-            return StatusCode((int)ex.StatusCode, ex.Message);
+            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return Unauthorized("GitHub token expired or invalid");
+            }
+            return StatusCode(500, "Error fetching GitHub user data");
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Internal server error");
         }
         
     }
