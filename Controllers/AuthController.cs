@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 public class AuthController : ControllerBase
 {
     [HttpGet("login")]
-    public IActionResult Login(string returnUrl = "/")
+    public IActionResult Login(string returnUrl = "https://localhost:3000/dashboard")
     {
         var properties = new AuthenticationProperties { RedirectUri = returnUrl };
         return Challenge(properties, "GitHub");

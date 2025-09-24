@@ -21,7 +21,11 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = "GitHub";
 })
-.AddCookie()
+.AddCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+})
 .AddGitHub(options =>
 {
     options.ClientId = githubClientID;
@@ -29,6 +33,16 @@ builder.Services.AddAuthentication(options =>
     options.SaveTokens = true;
 
     options.Scope.Add("read:user");
+});
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowMyFrontend", builder =>
+    {
+        builder.WithOrigins("https://localhost:3000")
+               .AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials();
+    });
 });
 
 var app = builder.Build();
@@ -40,6 +54,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+
+app.UseCors("AllowMyFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

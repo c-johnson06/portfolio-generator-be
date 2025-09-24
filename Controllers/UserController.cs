@@ -28,15 +28,15 @@ public class UserController : ControllerBase
         try
         {
             var user = await github.User.Current();
-
             var userData = new
             {
-                Login = user.Login,
-                AvatarUrl = user.AvatarUrl,
-                Name = user.Name,
-                Company = user.Company,
-                Bio = user.Bio,
-                PublicRepos = user.PublicRepos
+                user.Login,
+                user.AvatarUrl,
+                user.Name,
+                user.Location,
+                user.Company,
+                user.Bio,
+                user.PublicRepos
             };
 
             return Ok(userData);
