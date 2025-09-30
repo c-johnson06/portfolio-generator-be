@@ -49,6 +49,14 @@ builder.Services.AddAuthentication(options =>
 
     options.Scope.Add("read:user");
     options.Scope.Add("repo");
+    
+    options.Events.OnRemoteFailure = context =>
+    {
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        var errorDescription = context.Request.Form["error_description"].FirstOrDefault() ?? "Unknown error";
+        logger.LogError("Remote failure: {Failure}", errorDescription);
+        return Task.CompletedTask;
+    };
 });
 builder.Services.AddCors(options =>
 {

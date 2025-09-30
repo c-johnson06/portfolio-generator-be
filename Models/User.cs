@@ -10,10 +10,9 @@ namespace PortfolioGenerator.Models
         public string Email { get; set; } = string.Empty;
         public string LinkedIn { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
-        public string ContactInfo { get; set; } = string.Empty;
         public string GitHubLogin { get; set; } = string.Empty;
 
-        public List<SelectedRepository> SelectedRepositories { get; set; } = new();
+        public List<SelectedRepository> SelectedRepositories { get; set; } = [];
         
     }
 }

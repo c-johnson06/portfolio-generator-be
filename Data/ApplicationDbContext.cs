@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioGenerator.Models;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace PortfolioGenerator.Data
 {
@@ -29,7 +30,11 @@ namespace PortfolioGenerator.Data
                 .HasConversion(
                     v => string.Join("||", v),
                     v => v.Split("||", StringSplitOptions.RemoveEmptyEntries).ToList()
-                );
+                )
+                .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                    (c1, c2) => (c1 ?? new List<string>()).SequenceEqual(c2 ?? new List<string>()),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()));
         }
     }
 }
