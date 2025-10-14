@@ -131,40 +131,49 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpPost("resume")]
-    [Authorize]
-    public async Task<IActionResult> SaveResumeData([FromBody] ResumeDataRequest request)
+
+[HttpPost("resume")]
+[Authorize]
+public async Task<IActionResult> SaveResumeData([FromBody] ResumeDataRequest request)
+{
+    var githubLogin = User.FindFirst(ClaimTypes.Name)?.Value;
+    if (string.IsNullOrEmpty(githubLogin))
     {
-        try
+        return Unauthorized("Could not determine GitHub login from token.");
+    }
+
+    // Use EF's execution strategy to safely run a transaction with retries
+    var strategy = _context.Database.CreateExecutionStrategy();
+
+    try
+    {
+        await strategy.ExecuteAsync(async () =>
         {
-            var githubLogin = User.FindFirst(ClaimTypes.Name)?.Value;
-            if (string.IsNullOrEmpty(githubLogin))
-            {
-                return Unauthorized("Could not determine GitHub login from token.");
-            }
+            // Start a transaction *inside* the execution strategy
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.GitHubLogin == githubLogin);
 
             if (existingUser == null)
             {
-                return NotFound("User not found in the database.");
+                await transaction.RollbackAsync();
+                throw new Exception("User not found in the database.");
             }
 
-            // Update user information
+            // Update user info
             existingUser.Email = request.Email;
             existingUser.LinkedIn = request.LinkedIn;
             existingUser.Summary = request.ProfessionalSummary;
-
             existingUser.SkillsJson = JsonSerializer.Serialize(request.Skills);
 
-            // Remove existing selected repositories to replace them
-            var existingSelectedRepos = _context.SelectedRepositories.Where(sr => sr.UserId == existingUser.Id);
+            // Replace selected repositories
+            var existingSelectedRepos = _context.SelectedRepositories
+                .Where(sr => sr.UserId == existingUser.Id);
             _context.SelectedRepositories.RemoveRange(existingSelectedRepos);
 
-            // Add new selected repositories
             foreach (var repo in request.SelectedRepositories)
             {
-                var selectedRepo = new SelectedRepository
+                _context.SelectedRepositories.Add(new SelectedRepository
                 {
                     UserId = existingUser.Id,
                     RepoId = repo.RepoId,
@@ -177,20 +186,22 @@ public class UserController : ControllerBase
                     CustomTitle = repo.CustomTitle,
                     CustomBulletPoints = repo.CustomBulletPoints ?? new List<string>(),
                     AddedAt = DateTime.UtcNow
-                };
-                _context.SelectedRepositories.Add(selectedRepo);
+                });
             }
 
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        });
 
-            return Ok(new { message = "Resume data saved successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving resume data");
-            return StatusCode(500, "An internal server error occurred.");
-        }
+        return Ok(new { message = "Resume data saved successfully" });
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error saving resume data");
+        return StatusCode(500, "An internal server error occurred.");
+    }
+}
+
 
     [HttpGet("resume")]
     [Authorize]

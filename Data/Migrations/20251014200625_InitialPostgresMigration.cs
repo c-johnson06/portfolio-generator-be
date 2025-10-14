@@ -2,10 +2,10 @@
 
 #nullable disable
 
-namespace Portfolio_Generator.api.Migrations
+namespace Portfolio_Generator.api.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class FixValueComparer : Migration
+    public partial class InitialPostgresMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
