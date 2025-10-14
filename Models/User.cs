@@ -11,7 +11,8 @@ namespace PortfolioGenerator.Models
         public string LinkedIn { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
         public string GitHubLogin { get; set; } = string.Empty;
-
+        public bool IsPremium { get; set; } = false;
+        public string SkillsJson { get; set; } = "[]";
         public List<SelectedRepository> SelectedRepositories { get; set; } = [];
         
     }
