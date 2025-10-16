@@ -357,7 +357,6 @@ public class PdfController : ControllerBase
                             {(string.IsNullOrEmpty(repo.Language) ? "" : $@"
                             <span class=""language"">{repo.Language}</span>
                             ")}
-                            <span class=""date"">{DateTime.Parse(repo.AddedAt):MMM yyyy}</span>
                         </div>
                         <div class=""project-description"">
                             {(repo.CustomBulletPoints.Any() ? $@"
