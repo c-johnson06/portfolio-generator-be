@@ -22,15 +22,23 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") ??
+    builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrEmpty(connectionString))
+    throw new InvalidOperationException("❌ Database connection string not found in environment variables or configuration.");
+
+Console.WriteLine($"📡 Using connection string: {connectionString}");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions =>
-        {
-            npgsqlOptions.CommandTimeout(180);
-            npgsqlOptions.EnableRetryOnFailure();
-        })
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.CommandTimeout(180);
+        npgsqlOptions.EnableRetryOnFailure();
+    })
 );
+
 
 builder.Services.AddAuthentication(options =>
 {
