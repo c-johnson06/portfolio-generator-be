@@ -106,5 +106,10 @@ if (!string.IsNullOrEmpty(port))
     app.Urls.Add($"http://0.0.0.0:{port}");
 }
 
+app.MapGet("/migrate", async (ApplicationDbContext db) =>
+{
+    await db.Database.MigrateAsync();
+    return Results.Ok("✅ Database migrated successfully!");
+});
 
 app.Run();
