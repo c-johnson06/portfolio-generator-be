@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using PortfolioGenerator.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,13 +87,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.Use((context, next) =>
+app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    if (context.Request.Headers.TryGetValue("X-Forwarded-Proto", out var proto) && proto == "http")
-    {
-        context.Request.Scheme = "https";
-    }
-    return next();
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
 });
 
 Console.WriteLine($"Loaded connection string: {builder.Configuration.GetConnectionString("DefaultConnection")}");
