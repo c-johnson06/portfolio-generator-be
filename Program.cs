@@ -86,6 +86,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.Use((context, next) =>
+{
+    if (context.Request.Headers.TryGetValue("X-Forwarded-Proto", out var proto) && proto == "http")
+    {
+        context.Request.Scheme = "https";
+    }
+    return next();
+});
+
 Console.WriteLine($"Loaded connection string: {builder.Configuration.GetConnectionString("DefaultConnection")}");
 
 if (app.Environment.IsDevelopment())
