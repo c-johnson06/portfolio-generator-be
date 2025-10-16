@@ -7,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 Env.Load();
 
+AppContext.SetSwitch("Npgsql.EnableLegacyIPv6Behavior", false);
+
 var githubClientID = builder.Configuration["GitHub:ClientID"];
 var githubClientSecret = builder.Configuration["GitHub:ClientSecret"];
 
