@@ -18,7 +18,6 @@ if (string.IsNullOrEmpty(githubClientID) || string.IsNullOrEmpty(githubClientSec
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -40,49 +39,41 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.None;
-
-    if (builder.Environment.IsDevelopment())
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    }
-    else
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    }
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 })
 .AddGitHub(options =>
 {
     options.ClientId = githubClientID;
     options.ClientSecret = githubClientSecret;
     options.SaveTokens = true;
-
     options.Scope.Add("read:user");
     options.Scope.Add("repo");
-    
     options.Events.OnRemoteFailure = context =>
     {
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
         var errorDescription = context.Request.Form["error_description"].FirstOrDefault() ?? "Unknown error";
-        logger.LogError("Remote failure: {Failure}", errorDescription);
+        logger.LogError("GitHub OAuth failure: {Failure}", errorDescription);
         return Task.CompletedTask;
     };
 });
+
+// Allow frontend + Render domain for CORS
+var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "https://localhost:3000";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowMyFrontend", builder =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        builder.WithOrigins("https://localhost:3000")
-               .AllowAnyHeader()
-               .AllowAnyMethod()
-               .AllowCredentials();
+        policy.WithOrigins(frontendUrl, "https://portfolio-generator-fbbp.onrender.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddEnvironmentVariables();
-
 var app = builder.Build();
+
 Console.WriteLine($"Loaded connection string: {builder.Configuration.GetConnectionString("DefaultConnection")}");
 
 if (app.Environment.IsDevelopment())
@@ -92,26 +83,26 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-
-app.UseCors("AllowMyFrontend");
-
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
+// ✅ Health check (no CORS needed — simple GET)
+app.MapGet("/health", () => "OK");
 
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrEmpty(port))
-{
-    app.Urls.Add($"http://0.0.0.0:{port}");
-}
-
+// ✅ Migration endpoint — make it work without CORS issues
 app.MapGet("/migrate", async (ApplicationDbContext db, ILogger<Program> logger) =>
 {
     logger.LogInformation("Running migrations...");
     await db.Database.MigrateAsync();
-    logger.LogInformation("Migrations completed.");
+    logger.LogInformation("✅ Migrations completed.");
     return Results.Text("✅ Success! Tables created in Supabase.", "text/plain");
 });
+
+// ✅ Bind to 0.0.0.0 (required by Render)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
+app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();
