@@ -57,6 +57,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = githubClientID;
     options.ClientSecret = githubClientSecret;
+    options.CallbackPath = "/signin-github"; // ✅ Add this line
     options.SaveTokens = true;
     options.Scope.Add("read:user");
     options.Scope.Add("repo");
@@ -68,6 +69,7 @@ builder.Services.AddAuthentication(options =>
         return Task.CompletedTask;
     };
 });
+
 
 // Allow frontend + Render domain for CORS
 var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "https://localhost:3000";
