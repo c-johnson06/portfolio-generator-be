@@ -10,7 +10,7 @@ public class AuthController : ControllerBase
     {
         var properties = new AuthenticationProperties
         {
-            RedirectUri = "https://localhost:3000/dashboard"    
+            RedirectUri = "https://portfolio-generator-fe-five.vercel.app/dashboard"    
         };
         return Challenge(properties, "GitHub");
     }
