@@ -83,8 +83,9 @@ public class PdfController : ControllerBase
 
             var launchOptions = new LaunchOptions
             {
-                Headless = true,
-                Args = new[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage" }
+                ExecutablePath = Environment.GetEnvironmentVariable("PUPPETEER_EXECUTABLE_PATH") ?? "/usr/bin/chromium",
+                Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" },
+                Headless = true
             };
 
             var browserFetcher = new BrowserFetcher();

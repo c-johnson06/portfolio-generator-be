@@ -25,6 +25,10 @@ RUN apt-get update && apt-get install -y \
     libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Chromium for PuppeteerSharp
+RUN apt-get update && apt-get install -y chromium && rm -rf /var/lib/apt/lists/*
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 RUN useradd -m appuser
 USER appuser
 
