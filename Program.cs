@@ -78,7 +78,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(frontendUrl, "https://portfolio-generator-fbbp.onrender.com")
+        policy.WithOrigins(frontendUrl, "https://portfolio-generator-fe-five.vercel.app", "https://portfolio-generator-fbbp.onrender.com")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
