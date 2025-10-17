@@ -88,10 +88,6 @@ public class PdfController : ControllerBase
                 Headless = true
             };
 
-            var browserFetcher = new BrowserFetcher();
-            var revisionInfo = await browserFetcher.DownloadAsync();
-            launchOptions.ExecutablePath = revisionInfo.GetExecutablePath();
-
             using var browser = await Puppeteer.LaunchAsync(launchOptions);
             using var page = await browser.NewPageAsync();
 
