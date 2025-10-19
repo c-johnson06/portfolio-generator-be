@@ -40,7 +40,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     })
 );
 
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -50,30 +49,60 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    
+    // CRITICAL FIX: Return 401 for API requests instead of redirecting
+    options.Events.OnRedirectToLogin = context =>
+    {
+        // Check if this is an API request
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        
+        // For non-API requests, allow the redirect
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 })
 .AddGitHub(options =>
 {
     options.ClientId = githubClientID;
     options.ClientSecret = githubClientSecret;
-    options.CallbackPath = "/signin-github"; // ✅ Add this line
+    options.CallbackPath = "/signin-github";
     options.SaveTokens = true;
     options.Scope.Add("read:user");
     options.Scope.Add("repo");
+    
     options.Events.OnRemoteFailure = context =>
     {
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-        var errorDescription = context.Request.Form["error_description"].FirstOrDefault() ?? "Unknown error";
+        var errorDescription = context.Request.Query["error_description"].FirstOrDefault() ?? "Unknown error";
         logger.LogError("GitHub OAuth failure: {Failure}", errorDescription);
+        
+        // Redirect to frontend with error
+        context.Response.Redirect($"https://portfolio-generator-fe-five.vercel.app/?error={Uri.EscapeDataString(errorDescription)}");
+        context.HandleResponse();
         return Task.CompletedTask;
     };
 });
 
-
-// Allow frontend + Render domain for CORS
-var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "https://localhost:3000";
+// CORS Configuration
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -81,7 +110,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("https://portfolio-generator-fe-five.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .WithExposedHeaders("Set-Cookie");
     });
 });
 
@@ -100,7 +130,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
 app.UseCors("AllowFrontend");
 app.UseRouting();
 
@@ -109,10 +138,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ✅ Health check (no CORS needed — simple GET)
 app.MapGet("/health", () => "OK");
 
-// ✅ Migration endpoint — make it work without CORS issues
 app.MapGet("/migrate", async (ApplicationDbContext db, ILogger<Program> logger) =>
 {
     logger.LogInformation("Running migrations...");
@@ -121,7 +148,6 @@ app.MapGet("/migrate", async (ApplicationDbContext db, ILogger<Program> logger) 
     return Results.Text("✅ Success! Tables created in Supabase.", "text/plain");
 });
 
-// ✅ Bind to 0.0.0.0 (required by Render)
 var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
