@@ -53,17 +53,34 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     
-    // CRITICAL FIX: Return 401 for API requests instead of redirecting
+    // CRITICAL FIX: Handle OPTIONS preflight requests manually
     options.Events.OnRedirectToLogin = context =>
     {
-        // Check if this is an API request
+        // Check if the request is a preflight (OPTIONS) request
+        if (context.Request.Method == "OPTIONS")
+        {
+            // This is a preflight request. We must manually send back
+            // a 200 OK with the correct CORS headers.
+            context.Response.Headers.Append("Access-Control-Allow-Origin", "https://portfolio-generator-fe-five.vercel.app");
+            context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+            context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            
+            // Be sure to add all headers your client might send
+            context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization"); 
+            
+            context.Response.StatusCode = StatusCodes.Status200OK;
+            return Task.CompletedTask; // Short-circuit and end the request
+        }
+
+        // This is a REAL unauthenticated request (GET, POST, etc.)
+        // Handle it as you were before.
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
         }
         
-        // For non-API requests, allow the redirect
+        // For non-API requests, allow the default redirect
         context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     };
