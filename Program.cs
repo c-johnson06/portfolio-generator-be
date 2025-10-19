@@ -130,9 +130,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseRouting();
-app.UseCors("AllowFrontend");
 
+app.UseCors("AllowFrontend");
+app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
